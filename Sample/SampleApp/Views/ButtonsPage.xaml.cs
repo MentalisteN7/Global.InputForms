@@ -18,6 +18,8 @@ namespace SampleApp.Views
                 Text = "test"
             };
             _stack.Children.Add(button);
+
+            Switch lol = new Switch();
         }
 
         private void SubmitClicked(object sender, EventArgs e)

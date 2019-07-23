@@ -256,60 +256,63 @@ namespace Global.InputForms
             {
             }
 
-            using (_cts = new CancellationTokenSource())
+            if (!string.IsNullOrEmpty(text))
             {
-                try
+                using (_cts = new CancellationTokenSource())
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(333), _cts.Token); // buffer
-                    var cleanedNewPlaceHolderValue =
-                        Regex.Replace((text ?? string.Empty).ToLowerInvariant(), @"\s+", string.Empty);
-                    if (!string.IsNullOrEmpty(cleanedNewPlaceHolderValue) && ItemsSource != null)
+                    try
                     {
-                        List<object> filteredSuggestions = null;
-                        await Task.Run(() =>
+                        await Task.Delay(TimeSpan.FromMilliseconds(333), _cts.Token); // buffer
+                        var cleanedNewPlaceHolderValue =
+                            Regex.Replace((text ?? string.Empty).ToLowerInvariant(), @"\s+", string.Empty);
+                        if (!string.IsNullOrEmpty(cleanedNewPlaceHolderValue) && ItemsSource != null)
                         {
-                            filteredSuggestions = ItemsSource.Cast<object>()
-                                .Where(x => Regex.Replace(x.ToString().ToLowerInvariant(), @"\s+", string.Empty)
-                                    .Contains(cleanedNewPlaceHolderValue))
-                                .OrderByDescending(x => Regex.Replace(x.ToString()
-                                        .ToLowerInvariant(), @"\s+", string.Empty)
-                                    .StartsWith(cleanedNewPlaceHolderValue, StringComparison.CurrentCulture)).ToList();
-                        });
-                        _availableSuggestions = new ObservableCollection<object>();
-                        if (filteredSuggestions != null && filteredSuggestions.Count > 0)
-                        {
-                            foreach (var suggestion in filteredSuggestions) _availableSuggestions.Add(suggestion);
-                            ShowHideListbox(true);
+                            List<object> filteredSuggestions = null;
+                            await Task.Run(() =>
+                            {
+                                filteredSuggestions = ItemsSource.Cast<object>()
+                                    .Where(x => Regex.Replace(x.ToString().ToLowerInvariant(), @"\s+", string.Empty)
+                                        .Contains(cleanedNewPlaceHolderValue))
+                                    .OrderByDescending(x => Regex.Replace(x.ToString()
+                                            .ToLowerInvariant(), @"\s+", string.Empty)
+                                        .StartsWith(cleanedNewPlaceHolderValue, StringComparison.CurrentCulture)).ToList();
+                            });
+                            _availableSuggestions = new ObservableCollection<object>();
+                            if (filteredSuggestions != null && filteredSuggestions.Count > 0)
+                            {
+                                foreach (var suggestion in filteredSuggestions) _availableSuggestions.Add(suggestion);
+                                ShowHideListbox(true);
+                            }
+                            else
+                            {
+                                ShowHideListbox(false);
+                            }
                         }
                         else
                         {
-                            ShowHideListbox(false);
+                            if (_availableSuggestions.Count > 0)
+                            {
+                                _availableSuggestions = new ObservableCollection<object>();
+                                ShowHideListbox(false);
+                            }
                         }
-                    }
-                    else
-                    {
-                        if (_availableSuggestions.Count > 0)
+
+                        _lstSuggestions.ItemsSource = _availableSuggestions;
+
+                        if (_availableSuggestions.Any() && _frameList.GestureRecognizers.Contains(_backgroundTap))
                         {
-                            _availableSuggestions = new ObservableCollection<object>();
-                            ShowHideListbox(false);
+                            _backgroundTap.Tapped -= BackGroundTapped;
+                            _frameList.GestureRecognizers.Remove(_backgroundTap);
+                        }
+                        else if (!_availableSuggestions.Any() && !_frameList.GestureRecognizers.Contains(_backgroundTap))
+                        {
+                            _backgroundTap.Tapped += BackGroundTapped;
+                            _frameList.GestureRecognizers.Add(_backgroundTap);
                         }
                     }
-
-                    _lstSuggestions.ItemsSource = _availableSuggestions;
-
-                    if (_availableSuggestions.Any() && _frameList.GestureRecognizers.Contains(_backgroundTap))
+                    catch (TaskCanceledException) // if the operation is cancelled, do nothing
                     {
-                        _backgroundTap.Tapped -= BackGroundTapped;
-                        _frameList.GestureRecognizers.Remove(_backgroundTap);
                     }
-                    else if (!_availableSuggestions.Any() && !_frameList.GestureRecognizers.Contains(_backgroundTap))
-                    {
-                        _backgroundTap.Tapped += BackGroundTapped;
-                        _frameList.GestureRecognizers.Add(_backgroundTap);
-                    }
-                }
-                catch (TaskCanceledException) // if the operation is cancelled, do nothing
-                {
                 }
             }
         }
